@@ -8,7 +8,7 @@ const Navbar = () => {
   const menu = [
     { label: "Home", path: "/" },
     { label: "About", path: "/about" },
-    { label: "Find Books", path: "/find" },
+    { label: "Find Books", path: "/books" },
     { label: "Sell Books", path: "/sell" },
     { label: "Contact", path: "/contact" },
   ];

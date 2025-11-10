@@ -32,14 +32,20 @@ const Signup = () => {
       await updateProfile(userData.user, { displayName: form.name });
 
       // Step 3: Get Firebase token
-      const token = await userData.user.getIdToken();
+     const token = await user.getIdToken();
+await axios.post(
+  "http://localhost:5000/api/users/",
+  {
+    name: user.displayName,
+    email: user.email,   // ✅ add this line
+    photoURL: user.photoURL,
+    location: { coordinates: [latitude, longitude] },
+  },
+  {
+    headers: { Authorization: `Bearer ${token}` },
+  }
+);
 
-      // Step 4: Send to backend to register user
-      const res = await axios.post(
-        "http://localhost:5000/api/users/",
-        { name: form.name },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(res.data.user));

@@ -4,6 +4,12 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Home from "./pages/Home"
 import Signup from './pages/Signup';
 import Login from './pages/Login';
+import BookList from "./components/book/BookList";
+import PaymentSuccess from './components/book/PayementSuccess';
+import CheckoutPage from './components/book/CheckoutPage';
+import AddBook from './components/book/AddBook';
+import BookDetails from './components/book/BookDetails';
+import BookFilter from './components/book/BookFilter';
 
 
 function App() {
@@ -17,8 +23,15 @@ function App() {
     <Route path='/' element={<Home/>}/>
     <Route path='/signup' element={<Signup/>}/>
     <Route path='/login' element={<Login/>}/>
+   <Route path="/find" element={<BookList />} />
+   <Route path="/books" element={<BookFilter />} />
+  <Route path="/sell" element={<AddBook />} />
+  <Route path="/checkout" element={<CheckoutPage />} />
+  <Route path="/payment-success" element={<PaymentSuccess />} />
     
-    
+     
+        <Route path="/my-books" element={<BookList myBooksOnly />} />
+        <Route path="/books/:id" element={<BookDetails />} />
   </Routes>
   </BrowserRouter>
 

@@ -1,70 +1,51 @@
 import React from "react";
-import { deleteBook, createPaymentOrder, verifyPayment } from "../../api/payment";
+import { useNavigate } from "react-router-dom";
+import { Heart, Eye } from "lucide-react";
 
-const BookCard = ({ book, userId, token, onDelete }) => {
-  const handleDelete = async () => {
-    await deleteBook(book._id, token);
-    onDelete(book._id);
-  };
-
-  const handleBuy = async () => {
-    try {
-      const orderData = await createPaymentOrder(book.price);
-      if (!orderData.success) return alert("Payment setup failed!");
-
-      const options = {
-        key: orderData.key,
-        amount: orderData.order.amount,
-        currency: "INR",
-        name: "OldBooks Marketplace",
-        description: book.title,
-        order_id: orderData.order.id,
-        handler: async function (response) {
-          const verify = await verifyPayment(response);
-          if (verify.success) alert("✅ Payment successful!");
-          else alert("❌ Payment verification failed");
-        },
-        theme: { color: "#3399cc" },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-    } catch (err) {
-      console.error(err);
-      alert("Error during payment!");
-    }
-  };
+const BookCard = ({ book, onWishlistToggle, isWishlisted }) => {
+  const navigate = useNavigate();
 
   return (
-    <div className="border rounded-xl p-4 shadow-md bg-white">
-      <img
-        src={book.image || "https://via.placeholder.com/150"}
-        alt={book.title}
-        className="w-full h-40 object-cover rounded-md"
-      />
-      <h3 className="text-lg font-semibold mt-2">{book.title}</h3>
-      <p className="text-gray-600">{book.author}</p>
-      <p className="text-green-700 font-bold">₹{book.price}</p>
+    <div className="p-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 relative">
+      {/* Image */}
+      <div className="relative">
+        <img
+          src={book.image || "/placeholder.png"}
+          alt={book.title}
+          className="w-full h-56 object-cover rounded-xl"
+        />
+        {/* Wishlist toggle button */}
+        <button
+          onClick={() => onWishlistToggle(book._id)}
+          className={`absolute top-3 right-3 p-2 rounded-full shadow-md transition-all duration-200 ${
+            isWishlisted
+              ? "bg-pink-500 text-white"
+              : "bg-white text-pink-600 hover:bg-pink-100"
+          }`}
+        >
+          <Heart
+            size={20}
+            className={isWishlisted ? "fill-white" : "fill-transparent"}
+          />
+        </button>
+      </div>
 
-      <div className="mt-3 flex gap-2">
-        {book.sellerId === userId ? (
-          <>
-            <button
-              onClick={handleDelete}
-              className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
-            >
-              Delete
-            </button>
-            {/* You can navigate to edit form */}
-          </>
-        ) : (
+      {/* Book Info */}
+      <div className="mt-3">
+        <h3 className="text-lg font-bold text-gray-800 line-clamp-1">
+          {book.title}
+        </h3>
+        <p className="text-gray-500 text-sm line-clamp-1">{book.author}</p>
+        <p className="text-indigo-600 font-semibold mt-1">₹{book.price}</p>
+
+        <div className="flex justify-between mt-3">
           <button
-            onClick={handleBuy}
-            className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700"
+            onClick={() => navigate(`/books/${book._id}`)}
+            className="text-sm flex items-center gap-1 bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600 transition"
           >
-            Buy Now
+            <Eye size={16} /> View
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

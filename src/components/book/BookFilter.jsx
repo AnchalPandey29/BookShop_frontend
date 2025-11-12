@@ -1,88 +1,65 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import BookCard from "./BookCard";
+import {
+  Heart,
+  PlusCircle,
+  LocateFixed,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function BookFilter() {
   const [books, setBooks] = useState([]);
   const [filters, setFilters] = useState({
     category: "",
-    minPrice: "",
-    maxPrice: "",
+    priceRange: [0, 2000],
     near: "",
   });
-  const [sort, setSort] = useState("newest");
   const [coords, setCoords] = useState({ lat: null, lng: null });
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const token = localStorage.getItem("token");
-  const userId = localStorage.getItem("userId");
+  const [wishlist, setWishlist] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [showCategoryList, setShowCategoryList] = useState(false);
   const navigate = useNavigate();
 
-  // 📍 Capture user location
-  const getLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
-        alert("📍 Location captured successfully!");
-      },
-      (err) => {
-        console.error("Geolocation error:", err);
-        alert("Please enable location access for nearby search.");
-      }
-    );
-  };
+  const userId = localStorage.getItem("userId");
 
-  // 🧠 Handle input changes
-  const handleChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
+  // ✅ Load categories
+  useEffect(() => {
+    setCategories([
+      "Engineering",
+      "Medical",
+      "Novels",
+      "Biography",
+      "Science",
+      "Commerce",
+      "Technology",
+      "Comics",
+      "Other",
+    ]);
+  }, []);
 
-  // 🚀 Fetch filtered + sorted + paginated books
+  // ✅ Fetch books with filters
   const fetchFilteredBooks = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
-
+      if (filters.category) params.append("category", filters.category);
+      params.append("minPrice", filters.priceRange[0]);
+      params.append("maxPrice", filters.priceRange[1]);
+      if (filters.near) params.append("near", filters.near);
       if (coords.lat && coords.lng) {
         params.append("lat", coords.lat);
         params.append("lng", coords.lng);
       }
 
-      params.append("page", page);
-      params.append("limit", 9);
-
-      const res = await axios.get(
-        `http://localhost:5000/api/books?${params.toString()}`
-      );
-
-      let sortedBooks = [...res.data];
-      if (sort === "priceLow")
-        sortedBooks.sort((a, b) => a.price - b.price);
-      if (sort === "priceHigh")
-        sortedBooks.sort((a, b) => b.price - a.price);
-      if (sort === "newest")
-        sortedBooks.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
-      if (sort === "oldest")
-        sortedBooks.sort(
-          (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-        );
-
-      setBooks(sortedBooks);
-      setTotalPages(sortedBooks.length < 9 ? page : page + 1);
+      const res = await axios.get(`http://localhost:5000/api/books?${params}`);
+      setBooks(res.data || []);
     } catch (err) {
       console.error("Error fetching books:", err);
+      toast.error("Failed to fetch books");
     } finally {
       setLoading(false);
     }
@@ -90,136 +67,264 @@ export default function BookFilter() {
 
   useEffect(() => {
     fetchFilteredBooks();
-    // eslint-disable-next-line
-  }, [page, sort]);
+  }, []);
 
-  const handleDelete = (id) => {
-    setBooks(books.filter((b) => b._id !== id));
+  // ✅ Get location
+  const getLocation = () => {
+    if (!navigator.geolocation)
+      return toast.error("Geolocation not supported!");
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLoading(false);
+        toast.success("📍 Location captured!");
+      },
+      () => {
+        setLoading(false);
+        toast.error("⚠️ Please allow location access.");
+      }
+    );
+  };
+
+  // ✅ Category dropdown
+  const handleCategorySelect = (cat) => {
+    setFilters((prev) => ({ ...prev, category: cat }));
+    setShowCategoryList(false);
+  };
+
+  // ✅ Reset filters
+  const resetFilters = () => {
+    setFilters({ category: "", priceRange: [0, 2000], near: "" });
+    setCoords({ lat: null, lng: null });
+    fetchFilteredBooks();
+  };
+
+  // ✅ Toggle wishlist (consistent with WishlistPage)
+  const toggleWishlist = async (bookId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return toast.error("Please login to use wishlist ❤️");
+
+      const res = await axios.post(
+        "http://localhost:5000/api/wishlist/toggle",
+        { bookId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const { status } = res.data;
+
+      if (status === "added") {
+        toast.success("Added to Wishlist 💖");
+        navigate("/wishlist");
+      } else {
+        toast("Removed from Wishlist 💔");
+        setWishlist(wishlist.filter((id) => id !== bookId));
+      }
+    } catch (err) {
+      console.error("Wishlist toggle error:", err);
+      toast.error("Error updating wishlist");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-        📚 Old Book Marketplace
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 sm:p-10">
+      <Toaster position="top-center" />
+      <h1 className="text-4xl font-extrabold text-center text-indigo-800 mb-10">
+        📚 Book Bazaar — Discover & Sell Old Books
       </h1>
 
-      {/* 🔍 Filter Section */}
-      <div className="bg-white shadow-md rounded-lg p-6 mb-8 flex flex-wrap gap-4 items-end justify-center">
-        <input
-          type="text"
-          name="category"
-          placeholder="Category"
-          value={filters.category}
-          onChange={handleChange}
-          className="border p-2 rounded w-40"
-        />
-        <input
-          type="number"
-          name="minPrice"
-          placeholder="Min Price"
-          value={filters.minPrice}
-          onChange={handleChange}
-          className="border p-2 rounded w-32"
-        />
-        <input
-          type="number"
-          name="maxPrice"
-          placeholder="Max Price"
-          value={filters.maxPrice}
-          onChange={handleChange}
-          className="border p-2 rounded w-32"
-        />
+      {/* -------------------- Filter Section -------------------- */}
+      <div className="backdrop-blur-lg bg-white/70 border border-gray-200 shadow-xl rounded-2xl p-6 mb-10 flex flex-wrap gap-5 justify-center items-end">
+        {/* Category Dropdown */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search Category..."
+            value={filters.category}
+            onFocus={() => setShowCategoryList(true)}
+            onChange={(e) =>
+              setFilters({ ...filters, category: e.target.value })
+            }
+            className="border p-2 rounded-lg w-48 focus:ring-2 focus:ring-indigo-400 outline-none"
+          />
+          {showCategoryList && (
+            <ul className="absolute bg-white shadow-lg border rounded-lg w-48 mt-1 max-h-48 overflow-y-auto z-10">
+              {categories
+                .filter((cat) =>
+                  cat.toLowerCase().includes(filters.category.toLowerCase())
+                )
+                .map((cat) => (
+                  <li
+                    key={cat}
+                    onClick={() => handleCategorySelect(cat)}
+                    className="px-3 py-2 hover:bg-indigo-100 cursor-pointer"
+                  >
+                    {cat}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+
+        {/* ---------------- Price Range Slider ---------------- */}
+        <div className="w-72 relative">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Price Range: ₹{filters.priceRange[0]} - ₹{filters.priceRange[1]}
+          </label>
+
+          <div className="relative h-8 flex items-center">
+            {/* Track */}
+            <div className="absolute h-2 bg-gray-200 rounded-full w-full"></div>
+
+            {/* Active Range */}
+            <div
+              className="absolute h-2 bg-gradient-to-r from-indigo-500 to-green-500 rounded-full"
+              style={{
+                left: `${
+                  ((filters.priceRange[0] - 0) / (2000 - 0)) * 100
+                }%`,
+                right: `${
+                  100 - ((filters.priceRange[1] - 0) / (2000 - 0)) * 100
+                }%`,
+              }}
+            ></div>
+
+            {/* Sliders */}
+            {["min", "max"].map((type, index) => (
+              <input
+                key={type}
+                type="range"
+                min="0"
+                max="2000"
+                step="50"
+                value={filters.priceRange[index]}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setFilters((prev) => {
+                    const newRange = [...prev.priceRange];
+                    newRange[index] =
+                      index === 0
+                        ? Math.min(value, newRange[1] - 50)
+                        : Math.max(value, newRange[0] + 50);
+                    return { ...prev, priceRange: newRange };
+                  });
+                }}
+                className="absolute w-full h-2 bg-transparent appearance-none pointer-events-auto"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Nearby Distance */}
         <input
           type="number"
           name="near"
           placeholder="Distance (km)"
           value={filters.near}
-          onChange={handleChange}
-          className="border p-2 rounded w-32"
+          onChange={(e) => setFilters({ ...filters, near: e.target.value })}
+          className="border p-2 rounded-lg w-40 focus:ring-2 focus:ring-indigo-400 outline-none"
         />
 
+        {/* Location Fetch */}
         <button
           onClick={getLocation}
-          className="bg-yellow-400 px-4 py-2 rounded text-black hover:bg-yellow-500"
+          className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg shadow transition"
         >
-          Get Location 📍
+          {loading ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <LocateFixed className="animate-pulse" size={18} />
+          )}
+          Get Location
         </button>
 
-        <button
-          onClick={() => {
-            setPage(1);
-            fetchFilteredBooks();
-          }}
-          disabled={loading}
-          className="bg-green-500 px-4 py-2 rounded text-white hover:bg-green-600"
-        >
-          {loading ? "Loading..." : "Apply Filters"}
-        </button>
-
-        {/* Sort Dropdown */}
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="border p-2 rounded w-44"
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="priceLow">Price: Low → High</option>
-          <option value="priceHigh">Price: High → Low</option>
-        </select>
+        {/* Apply / Reset */}
+        <div className="flex gap-2">
+          <button
+            onClick={fetchFilteredBooks}
+            disabled={loading}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow transition"
+          >
+            {loading ? "Loading..." : "Apply Filters"}
+          </button>
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow transition"
+          >
+            <XCircle size={16} /> Reset
+          </button>
+        </div>
       </div>
 
-      {/* 📚 Books Section */}
+      {/* -------------------- Book Cards -------------------- */}
       {loading ? (
-        <p className="text-center text-gray-600 text-lg animate-pulse">
-          Loading books...
+        <p className="text-center text-gray-600 animate-pulse text-lg">
+          Fetching books near you...
         </p>
       ) : books.length === 0 ? (
-        <p className="text-center text-gray-600 text-lg">
-          No books found.
-        </p>
+        <p className="text-center text-gray-500 text-lg">No books found 📭</p>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {books.map((book) => (
             <div
               key={book._id}
-              className="cursor-pointer transform hover:scale-[1.02] transition"
-              onClick={() => navigate(`/books/${book._id}`)}
+              className="relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition transform hover:-translate-y-1"
             >
-              <BookCard
-                book={book}
-                userId={userId}
-                token={token}
-                onDelete={handleDelete}
+              <button
+                onClick={() => toggleWishlist(book._id)}
+                className="absolute top-3 right-3 text-red-500 hover:scale-110 transition"
+              >
+                <Heart
+                  size={24}
+                  className={`transition-all ${
+                    wishlist.includes(book._id) ? "fill-red-500" : "fill-none"
+                  }`}
+                />
+              </button>
+
+              <img
+                src={book.imageUrl || "https://via.placeholder.com/300"}
+                alt={book.title}
+                className="w-full h-56 object-cover"
               />
+
+              <div className="p-5">
+                <h2 className="text-lg font-semibold text-gray-800 line-clamp-1">
+                  {book.title}
+                </h2>
+                <p className="text-gray-500 text-sm">by {book.author}</p>
+                <p className="text-green-600 font-bold mt-2">₹{book.price}</p>
+
+                <div className="mt-4 flex justify-between">
+                  <button
+                    onClick={() => navigate(`/books/${book._id}`)}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    View
+                  </button>
+                  {book.sellerId === userId && (
+                    <button
+                      onClick={() => navigate(`/books/edit/${book._id}`)}
+                      className="bg-yellow-400 text-black px-4 py-2 rounded-lg hover:bg-yellow-500 transition"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Pagination */}
-      <div className="flex justify-center mt-8 gap-4">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className={`px-4 py-2 rounded ${
-            page === 1
-              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          Prev
-        </button>
-        <span className="text-lg font-semibold text-gray-700">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Next
-        </button>
-      </div>
+      {/* Floating Add Button */}
+      <button
+        onClick={() => navigate("/sell")}
+        className="fixed bottom-6 right-6 bg-gradient-to-br from-green-500 to-teal-500 text-white p-4 rounded-full shadow-xl hover:scale-110 transition"
+      >
+        <PlusCircle size={32} />
+      </button>
     </div>
   );
 }

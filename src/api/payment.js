@@ -37,22 +37,20 @@ export const updateBook = async (id, updated, token) => {
   return res.json();
 };
 
-// Razorpay order creation
-export const createPaymentOrder = async (amount) => {
-  const res = await fetch(`${API_BASE}/payments/create-order`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount }),
-  });
-  return res.json();
+export const createOrder = async (amount) => {
+  const token = localStorage.getItem("token");
+  const { data } = await axios.post(
+    `${API_BASE}/payments/create-order`,
+    { amount },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return data;
 };
 
-// Razorpay verification
-export const verifyPayment = async (paymentData) => {
-  const res = await fetch(`${API_BASE}/payments/verify-payment`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(paymentData),
+export const verifyPayment = async (paymentInfo) => {
+  const token = localStorage.getItem("token");
+  const { data } = await axios.post(`${API_BASE}/payments/verify-payment`, paymentInfo, {
+    headers: { Authorization: `Bearer ${token}` },
   });
-  return res.json();
+  return data;
 };

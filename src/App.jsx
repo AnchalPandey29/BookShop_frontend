@@ -10,6 +10,7 @@ import CheckoutPage from './components/book/CheckoutPage';
 import AddBook from './components/book/AddBook';
 import BookDetails from './components/book/BookDetails';
 import BookFilter from './components/book/BookFilter';
+import WishlistPage from './pages/WishlistPage';
 
 
 function App() {
@@ -28,10 +29,9 @@ function App() {
   <Route path="/sell" element={<AddBook />} />
   <Route path="/checkout" element={<CheckoutPage />} />
   <Route path="/payment-success" element={<PaymentSuccess />} />
-    
-     
-        <Route path="/my-books" element={<BookList myBooksOnly />} />
+     <Route path="/my-books" element={<BookList myBooksOnly />} />
         <Route path="/books/:id" element={<BookDetails />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
   </Routes>
   </BrowserRouter>
 

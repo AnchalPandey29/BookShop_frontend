@@ -11,6 +11,7 @@ import AddBook from './components/book/AddBook';
 import BookDetails from './components/book/BookDetails';
 import BookFilter from './components/book/BookFilter';
 import WishlistPage from './pages/WishlistPage';
+import MyOrders from './pages/MyOrders';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
      <Route path="/my-books" element={<BookList myBooksOnly />} />
         <Route path="/books/:id" element={<BookDetails />} />
         <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/orders" element={<MyOrders />} />
   </Routes>
   </BrowserRouter>
 

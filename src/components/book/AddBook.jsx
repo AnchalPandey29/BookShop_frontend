@@ -11,16 +11,16 @@ export default function AddBook({ onBookAdded }) {
     pages: "",
     category: "",
     condition: "New",
-    imageUrl: "",
+    image: "", // ✅ changed from imageUrl → image (backend expects image)
   });
 
   const [coords, setCoords] = useState({ lat: null, long: null });
   const [loading, setLoading] = useState(false);
 
-  // ✅ Backend base URL from .env (important)
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-  // 📍 Capture user's location
+  // 📍 Capture user location
   const handleLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -37,12 +37,12 @@ export default function AddBook({ onBookAdded }) {
     );
   };
 
-  // 🪄 Handle input changes
+  // 🔄 Handle input changes
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ Submit new book
+  // 🚀 Submit new book
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -54,9 +54,9 @@ export default function AddBook({ onBookAdded }) {
     try {
       setLoading(true);
 
-      // 🔐 Get Firebase auth token
       const auth = getAuth();
       const user = auth.currentUser;
+
       if (!user) {
         alert("Please login first!");
         setLoading(false);
@@ -65,7 +65,7 @@ export default function AddBook({ onBookAdded }) {
 
       const token = await user.getIdToken();
 
-      // 📦 Prepare payload (matches backend)
+      // ✅ Correct payload structure for backend
       const payload = {
         title: form.title,
         author: form.author,
@@ -74,19 +74,21 @@ export default function AddBook({ onBookAdded }) {
         pages: Number(form.pages),
         category: form.category,
         condition: form.condition,
-        imageUrl: form.imageUrl, // ✅ changed from image → imageUrl
-        coordinates: [coords.long, coords.lat], // ✅ backend expects this array
+        image: form.image, // ✅ backend expects "image"
+        location: {
+          type: "Point",
+          coordinates: [coords.long, coords.lat], // ✅ backend expects inside location: {}
+        },
       };
 
       console.log("📦 Payload being sent:", payload);
 
-      // 🚀 Send POST request to backend
       const res = await axios.post(`${API_BASE}/books`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       alert("✅ Book added successfully!");
-      console.log("📚 Added book:", res.data);
+      console.log("Added book:", res.data);
 
       // Reset form
       setForm({
@@ -97,10 +99,11 @@ export default function AddBook({ onBookAdded }) {
         pages: "",
         category: "",
         condition: "New",
-        imageUrl: "",
+        image: "",
       });
 
       setCoords({ lat: null, long: null });
+
       if (onBookAdded) onBookAdded();
     } catch (err) {
       console.error("❌ Add book error:", err.response?.data || err.message);
@@ -116,7 +119,7 @@ export default function AddBook({ onBookAdded }) {
       className="bg-white shadow-md rounded-lg p-6 space-y-4 max-w-lg mx-auto"
     >
       <h2 className="text-xl font-bold mb-3 text-gray-800 text-center">
-        Add Your Book 📖
+        Add Your Book
       </h2>
 
       <input
@@ -127,6 +130,7 @@ export default function AddBook({ onBookAdded }) {
         className="border p-2 w-full rounded"
         required
       />
+
       <input
         name="author"
         placeholder="Author Name"
@@ -135,6 +139,7 @@ export default function AddBook({ onBookAdded }) {
         className="border p-2 w-full rounded"
         required
       />
+
       <textarea
         name="description"
         placeholder="Book Description"
@@ -143,6 +148,7 @@ export default function AddBook({ onBookAdded }) {
         className="border p-2 w-full rounded"
         required
       />
+
       <input
         name="price"
         type="number"
@@ -152,6 +158,7 @@ export default function AddBook({ onBookAdded }) {
         className="border p-2 w-full rounded"
         required
       />
+
       <input
         name="pages"
         type="number"
@@ -160,6 +167,7 @@ export default function AddBook({ onBookAdded }) {
         onChange={handleChange}
         className="border p-2 w-full rounded"
       />
+
       <input
         name="category"
         placeholder="Category (e.g., Fiction, Science)"
@@ -167,10 +175,12 @@ export default function AddBook({ onBookAdded }) {
         onChange={handleChange}
         className="border p-2 w-full rounded"
       />
+
+      {/* ✅ Backend expects "image", not "imageUrl" */}
       <input
-        name="imageUrl"
+        name="image"
         placeholder="Image URL"
-        value={form.imageUrl}
+        value={form.image}
         onChange={handleChange}
         className="border p-2 w-full rounded"
       />

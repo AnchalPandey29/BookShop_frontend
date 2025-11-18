@@ -12,6 +12,8 @@ import BookDetails from './components/book/BookDetails';
 import BookFilter from './components/book/BookFilter';
 import WishlistPage from './pages/WishlistPage';
 import MyOrders from './pages/MyOrders';
+import About from './pages/About';
+import Contact from './pages/Contact';
 
 
 function App() {
@@ -23,6 +25,9 @@ function App() {
 
   <Routes>
     <Route path='/' element={<Home/>}/>
+      <Route path='/about' element={<About/>}/>
+          <Route path='/contact' element={<Contact/>}/>
+
     <Route path='/signup' element={<Signup/>}/>
     <Route path='/login' element={<Login/>}/>
    <Route path="/find" element={<BookList />} />

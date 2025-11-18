@@ -11,9 +11,13 @@ export default function MyOrders() {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("token");
+        console.log(token);
+
         const { data } = await axios.get("http://localhost:5000/api/purchases/my", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log(data);
+
 
         if (data.success) {
           setOrders(data.purchases);
@@ -30,6 +34,34 @@ export default function MyOrders() {
 
     fetchOrders();
   }, []);
+
+
+  const downloadInvoice = async (purchaseId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(
+        `http://localhost:5000/api/purchases/invoice/${purchaseId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob", // IMPORTANT: PDF
+        }
+      );
+
+      console.log(response);
+      
+
+      const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = fileURL;
+      link.download = `invoice-${purchaseId}.pdf`;
+      link.click();
+    } catch (err) {
+      console.error("Invoice Download Error:", err);
+      toast.error("Failed to download invoice");
+    }
+  };
+
 
   if (loading)
     return (
@@ -67,7 +99,7 @@ export default function MyOrders() {
           >
             <div className="flex gap-4">
               <img
-                src={order.book?.image || "/book-placeholder.png"}
+                src={order.book?.imageUrl || "/book-placeholder.png"}
                 alt={order.book?.title}
                 className="w-24 h-32 object-cover rounded-md border"
               />
@@ -88,12 +120,15 @@ export default function MyOrders() {
                   Status: {order.status}
                 </p>
 
-                <div className="mt-3 flex gap-2">
-                  <RazorpayCheckout book={order.book} />
-                  <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg">
-                    Download
-                  </button>
-                </div>
+
+                <button
+                  onClick={() => downloadInvoice(order._id)}
+                  className="mt-4 bg-rose-500 text-white hover:bg-rose-600 px-3 py-1 rounded-lg"
+                >
+                  Download
+                </button>
+
+
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-3 text-right">
